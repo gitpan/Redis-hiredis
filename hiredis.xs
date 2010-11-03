@@ -74,9 +74,16 @@ redis_hiredis_command(self, arr_ref)
             else if ( reply->type == REDIS_REPLY_ARRAY) {
                 arr_reply = newAV();
                 for ( i=0; i<reply->elements; i++ ) {
-                    av_push(arr_reply, 
-                        newSVpvn(reply->element[i]->reply, strlen(reply->element[i]->reply))
-                    );
+                    if ( reply->element[i]->type == REDIS_REPLY_ERROR
+                        || reply->element[i]->type == REDIS_REPLY_STRING )
+                    {
+                        av_push(arr_reply, 
+                            newSVpvn(reply->element[i]->reply, strlen(reply->element[i]->reply))
+                        );
+                    }
+                    else if ( reply->element[i]->type == REDIS_REPLY_INTEGER ) {
+                        av_push(arr_reply, newSViv(reply->element[i]->integer));
+                    }
                 }
                 RETVAL = newRV_inc((SV*)arr_reply);
             }

@@ -1,3 +1,8 @@
+0.0.3 - Tue Nov 02 11:01:00 EDT 2010
+        * Bring lib-hiredis.c up to date
+        * Fix bug #62234, seg fault on return of array of integers
+        * Added tests for bug #62234
+
 0.0.2 - Tue Aug 31 17:05:00 EDT 2010
         * Fix tests to not fallback to localhost and skip if
             REDISHOST isn't defined
