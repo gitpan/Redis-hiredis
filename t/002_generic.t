@@ -16,57 +16,57 @@ SKIP: {
 
     my $prefix = "Redis-hiredis-$$-";
 
-    $h->command(["set", $prefix."foo", "bar"]);
-    $h->command(["set", $prefix."baz", "foo"]);
-    $r = $h->command(['exists', $prefix.'foo']);
+    $h->command("set ".$prefix."foo bar");
+    $h->command("set ".$prefix."baz foo");
+    $r = $h->command('exists '.$prefix.'foo');
     is($r, 1, 'exists');
 
-    $r = $h->command(['type', $prefix.'foo']);
+    $r = $h->command('type '.$prefix.'foo');
     is($r, 'string', 'type');
 
-    $r = $h->command(['keys', $prefix.'fo*']);
+    $r = $h->command('keys '.$prefix.'fo*');
     is($r->[0], $prefix.'foo', 'keys');
 
-    $r = $h->command(['randomkey']);
+    $r = $h->command('randomkey');
     isnt($r, undef, 'randomkey');
 
-    $r = $h->command(['rename', $prefix.'foo', $prefix.'bar']);
+    $r = $h->command('rename '.$prefix.'foo '.$prefix.'bar');
     is($r, 'OK', 'rename');
 
-    $r = $h->command(['renamenx', $prefix.'bar', $prefix.'awesomesauce']);
+    $r = $h->command('renamenx '.$prefix.'bar '.$prefix.'awesomesauce');
     is($r, 1, 'renamenx');
 
-    $r = $h->command(['renamenx', $prefix.'baz', $prefix.'awesomesauce']);
+    $r = $h->command('renamenx '.$prefix.'baz '.$prefix.'awesomesauce');
     is($r, 0, 'renamenx to existing key');
 
-    $r = $h->command([qw(dbsize)]);
+    $r = $h->command('dbsize');
     cmp_ok($r, '>=', 1, 'dbsize');
      
-    $r = $h->command(['move', $prefix.'baz', 1]);
+    $r = $h->command('move '.$prefix.'baz 1');
     is($r, 1, 'move');
 
-    $r = $h->command([qw(select 1)]);
+    $r = $h->command('select 1');
     is($r, 'OK', 'select');
 
-    $r = $h->command(['del', $prefix.'baz']);
+    $r = $h->command('del '.$prefix.'baz');
     is($r, 1, 'del');
-    $r = $h->command([qw(select 0)]);
+    $r = $h->command('select 0');
 
-    $h->command(['set', $prefix.'baz', 'bar']);
-    $r = $h->command(['expire', $prefix.'baz', 86400]);
+    $h->command('set '.$prefix.'baz bar');
+    $r = $h->command('expire '.$prefix.'baz 86400');
     is($r, 1, 'expire');
 
-    $r = $h->command(['ttl', $prefix.'baz']);
+    $r = $h->command('ttl '.$prefix.'baz');
     cmp_ok($r, '>', 86300, 'ttl');
 
-    $h->command(["del", $prefix."awesomesauce"]);
-    $h->command(["del", $prefix."baz"]);
+    $h->command("del ".$prefix."awesomesauce");
+    $h->command("del ".$prefix."baz");
 
     SKIP: {
         skip "not destroying data", 2 unless $ENV{'REDIS_TEST_DESTRUCTIVE'};
-        $r = $h->command([qw(flushdb)]);
+        $r = $h->command('flushdb');
         is($r, 'OK', 'flushdb');
-        $r = $h->command([qw(flushall)]);
+        $r = $h->command('flushall');
         is($r, 'OK', 'flushall');
     };
 };

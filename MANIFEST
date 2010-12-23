@@ -1,17 +1,18 @@
 Changes
+COPYRIGHT
 Makefile.PL
 MANIFEST
 ppport.h
 README
 hiredis.xs
-lib-anet.c
-lib-anet.h
-lib-config.h
 lib-fmacros.h
 lib-hiredis.c
 lib-hiredis.h
+lib-net.c
+lib-net.h
 lib-sds.c
 lib-sds.h
+lib-util.h
 t/001_strings.t
 t/002_generic.t
 t/003_lists.t
@@ -21,3 +22,4 @@ t/006_hashes.t
 t/007_transactions.t
 hiredis.pm
 typemap
+META.yml                                 Module meta-data (added by MakeMaker)

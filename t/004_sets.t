@@ -15,74 +15,74 @@ SKIP: {
 
     my $prefix = "Redis-hiredis-$$-";
 
-    $r = $h->command(['sadd', $prefix.'foo', 'foo']);
+    $r = $h->command('sadd '.$prefix.'foo foo');
     is($r, 1, 'sadd');
-    $r = $h->command(['sadd', $prefix.'foo', 'bar']);
+    $r = $h->command('sadd '.$prefix.'foo bar');
     is($r, 1, 'sadd');
-    $r = $h->command(['sadd', $prefix.'foo', 'baz']);
+    $r = $h->command('sadd '.$prefix.'foo baz');
     is($r, 1, 'sadd');
 
-    $r = $h->command(['srem', $prefix.'foo', 'baz']);
+    $r = $h->command('srem '.$prefix.'foo baz');
     is($r, 1, 'srem');
 
-    $r = $h->command(['spop', $prefix.'foo']);
+    $r = $h->command('spop '.$prefix.'foo');
     like($r, qr/(foo|bar)/, 'spop');
 
     $h->command(['del', $prefix.'foo']);
-    $r = $h->command(['sadd', $prefix.'foo', 'foo']);
-    $r = $h->command(['sadd', $prefix.'foo', 'bar']);
-    $r = $h->command(['sadd', $prefix.'foo', 'baz']);
+    $r = $h->command('sadd '.$prefix.'foo foo');
+    $r = $h->command('sadd '.$prefix.'foo bar');
+    $r = $h->command('sadd '.$prefix.'foo baz');
 
-    $r = $h->command(['smove', $prefix.'foo', $prefix.'bar', 'foo']);
+    $r = $h->command('smove '.$prefix.'foo '.$prefix.'bar foo');
     is($r, 1, 'smove');
 
-    $r = $h->command(['scard', $prefix.'foo']);
+    $r = $h->command('scard '.$prefix.'foo');
     is($r, 2, 'scard');
 
-    $r = $h->command(['sismember', $prefix.'foo', 'bar']);
+    $r = $h->command('sismember '.$prefix.'foo bar');
     is($r, 1, 'sismember');
-    $r = $h->command(['sismember', $prefix.'foo', 'foo']);
+    $r = $h->command('sismember '.$prefix.'foo foo');
     is($r, 0, '! sismember');
 
 
-    $h->command(['del', $prefix.'foo']);
-    $h->command(['del', $prefix.'bar']);
-    $r = $h->command(['sadd', $prefix.'foo', 'foo']);
-    $r = $h->command(['sadd', $prefix.'foo', 'bar']);
-    $r = $h->command(['sadd', $prefix.'bar', 'bar']);
-    $r = $h->command(['sadd', $prefix.'bar', 'baz']);
+    $h->command('del '.$prefix.'foo');
+    $h->command('del '.$prefix.'bar');
+    $r = $h->command('sadd '.$prefix.'foo foo');
+    $r = $h->command('sadd '.$prefix.'foo bar');
+    $r = $h->command('sadd '.$prefix.'bar bar');
+    $r = $h->command('sadd '.$prefix.'bar baz');
 
-    $r = $h->command(['sinter', $prefix.'foo', $prefix.'bar']);
+    $r = $h->command('sinter '.$prefix.'foo '.$prefix.'bar');
     ok(ref $r eq 'ARRAY', 'sinter returns array');
     is($r->[0], 'bar', 'sinter');
 
-    $r = $h->command(['sinterstore', $prefix.'baz', $prefix.'foo', $prefix.'bar']);
+    $r = $h->command('sinterstore '.$prefix.'baz '.$prefix.'foo '.$prefix.'bar');
     is($r, 1, 'sinterstore');
 
-    $r = $h->command(['sunion', $prefix.'foo', $prefix.'bar']);
+    $r = $h->command('sunion '.$prefix.'foo '.$prefix.'bar');
     ok(ref $r eq 'ARRAY', 'sunion returns array');
     cmp_ok(scalar(@{$r}), '==', 3, 'sunion 3 members');
 
-    $h->command(['del', $prefix.'baz']);
-    $r = $h->command(['sunionstore', $prefix.'baz', $prefix.'foo', $prefix.'bar']);
+    $h->command('del '.$prefix.'baz');
+    $r = $h->command('sunionstore '.$prefix.'baz '.$prefix.'foo '.$prefix.'bar');
     is($r, 3, 'sunionstore');
 
-    $r = $h->command(['sdiff', $prefix.'foo', $prefix.'bar']);
+    $r = $h->command('sdiff '.$prefix.'foo '.$prefix.'bar');
     ok(ref $r eq 'ARRAY', 'sdiff returns array');
     is($r->[0], 'foo', 'sdiff');
 
-    $h->command(['del', $prefix.'baz']);
-    $r = $h->command(['sdiffstore', $prefix.'baz', $prefix.'foo', $prefix.'bar']);
+    $h->command('del '.$prefix.'baz');
+    $r = $h->command('sdiffstore '.$prefix.'baz '.$prefix.'foo '.$prefix.'bar');
     is($r, 1, 'sdiffstore');
 
-    $r = $h->command(['smembers', $prefix.'foo']);
+    $r = $h->command('smembers '.$prefix.'foo');
     ok(ref $r eq 'ARRAY', 'smembers returns array');
     cmp_ok(scalar(@{$r}), '==', 2, 'smembers');
 
-    $r = $h->command(['srandmember', $prefix.'foo']);
+    $r = $h->command('srandmember '.$prefix.'foo');
     like($r, qr/(foo|bar)/, 'srandmember');
 
-    $h->command(['del', $prefix.'foo']);
-    $h->command(['del', $prefix.'bar']);
-    $h->command(['del', $prefix.'baz']);
+    $h->command('del '.$prefix.'foo');
+    $h->command('del '.$prefix.'bar');
+    $h->command('del '.$prefix.'baz');
 };
