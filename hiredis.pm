@@ -1,7 +1,7 @@
 package Redis::hiredis;
 
 use strict;
-our $VERSION = "0.9.2";
+our $VERSION = "0.9.2.1";
 require XSLoader;
 XSLoader::load('Redis::hiredis', $VERSION);
 
@@ -57,7 +57,7 @@ or an array ref (if multiple values are returned).
 =head1 SEE ALSO
 
 The Redis command reference can be found here:
-F<http://code.google.com/p/redis/wiki/CommandReference>
+F<http://redis.io/commands>
 
 Documentation on the hiredis client can be found here:
 F<http://github.com/antirez/hiredis>

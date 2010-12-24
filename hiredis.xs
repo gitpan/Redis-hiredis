@@ -89,4 +89,5 @@ void
 redis_hiredis_DESTROY(self)
   Redis::hiredis self
   CODE:
-    redisFree(self->context);
+    if ( self->context != NULL )
+        redisFree(self->context);
