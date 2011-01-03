@@ -28,7 +28,6 @@ SKIP: {
     $r = $h->command('spop '.$prefix.'foo');
     like($r, qr/(foo|bar)/, 'spop');
 
-    $h->command(['del', $prefix.'foo']);
     $r = $h->command('sadd '.$prefix.'foo foo');
     $r = $h->command('sadd '.$prefix.'foo bar');
     $r = $h->command('sadd '.$prefix.'foo baz');

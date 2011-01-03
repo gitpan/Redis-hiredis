@@ -20,6 +20,8 @@ t/004_sets.t
 t/005_zsets.t
 t/006_hashes.t
 t/007_transactions.t
+t/008_pipeline.t
+t/009_errors.t
 hiredis.pm
 typemap
 META.yml                                 Module meta-data (added by MakeMaker)

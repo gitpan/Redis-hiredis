@@ -1,7 +1,7 @@
 package Redis::hiredis;
 
 use strict;
-our $VERSION = "0.9.2.1";
+our $VERSION = "0.9.2.2";
 require XSLoader;
 XSLoader::load('Redis::hiredis', $VERSION);
 
@@ -19,6 +19,12 @@ Redis::hiredis - interact with Redis using the hiredis client.
   $redis->connect('127.0.0.1', 6379);
   $redis->command('set foo bar');
   my $val = $redis->command('get foo');
+
+  # to pipeline commands
+  $redis->append_command('set abc 123');
+  $redis->append_command('get abc');
+  my $set_status = $redis->get_reply(); # 'OK'
+  my $get_val = $redis->get_reply(); # 123
 
 =head1 DESCRIPTION
 
@@ -52,12 +58,31 @@ the official redis cli
 command will return a scalar value which will either be an integer, string
 or an array ref (if multiple values are returned).
 
+=item append_command( $command )
+
+For performance reasons, it's sometimes useful to pipeline commands.  When
+pipelining, muiltple commands are sent to the server at once and the results
+are read as they become available.  hiredis supports this via append_command()
+and get_reply().  Commands passed to append_command() are buffered locally
+until the first call to get_reply() when all the commands are sent to the
+server at once.  The results are then returned one at a time via calls to
+get_reply().
+
+See the hiredis documentation for a more detailed explanation.
+
+=item get_reply()
+
+See append_command().
+
 =back
 
 =head1 SEE ALSO
 
 The Redis command reference can be found here:
 F<http://redis.io/commands>
+
+A discusion of pipelining can be found here:
+F<http://redis.io/topics/pipelining>
 
 Documentation on the hiredis client can be found here:
 F<http://github.com/antirez/hiredis>
