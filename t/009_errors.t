@@ -1,7 +1,6 @@
 use strict;
 use warnings;
 use Test::More;
-use Test::Exception;
 
 plan skip_all => q/$ENV{'REDISHOST'} isn't set/
     if !defined $ENV{'REDISHOST'};
@@ -14,54 +13,35 @@ plan skip_all => q/$ENV{'REDISHOST'} isn't set/
     my $host = $ENV{'REDISHOST'};
     my $port = $ENV{'REDISPORT'} || 6379;
 
-    #
     # bad connect
-    #
-    throws_ok
-        sub { $h->connect('fake_host', $port) },
-        qr/Can't resolve: fake_host/,
-        'connect failed correctly';
+    eval { $h->connect('fake_host', $port); };
+    ok ( $@, 'connect failed correctly');
 
-    lives_ok
-        sub { $h->connect($host, $port) },
-        'connect worked';
+    eval { $h->connect($host, $port); };
+    ok ( ! $@, 'connect worked' );
 
-    #
     # bad command
-    #
-    throws_ok
-        sub { $h->command( 'NO_SUCH_CMD' ) },
-        qr/ERR unknown command 'NO_SUCH_CMD'/,
-        'command failed correctly';
+    eval { $h->command( 'NO_SUCH_CMD' ); };
+    ok ( $@, 'command failed correctly' );
 
-    #
     # partially bad pipeline
-    #
-    lives_ok
-        sub { $h->append_command('BAD_CMD0') },
-        'append_command 0 worked';
+    eval { $h->append_command('BAD_CMD0'); };
+    ok ( ! $@, 'append_command 0 worked' );
 
-    lives_ok
-        sub { $h->append_command('PING') },
-        'append_command 0 worked';
+    eval { $h->append_command('PING'); };
+    ok ( ! $@, 'append_command 1 worked' );
 
-    lives_ok
-        sub { $h->append_command('BAD_CMD2') },
-        'append_command 0 worked';
+    eval { $h->append_command('BAD_CMD2'); };
+    ok ( ! $@, 'append_command 2 worked' );
 
-    throws_ok
-        sub { $h->get_reply() },
-        qr/ERR unknown command 'BAD_CMD0'/,
-        'pipeline cmd 0 failed correctly';
+    eval { $h->get_reply(); };
+    ok ( $@, 'pipeline cmd 0 failed correctly' );
 
-    lives_ok
-        sub { $h->get_reply() },
-        'pipeline cmd 1 worked';
+    eval { $h->get_reply(); };
+    ok ( ! $@, 'pipeline cmd 1 worked' );
 
-    throws_ok
-        sub { $h->get_reply() },
-        qr/ERR unknown command 'BAD_CMD2'/,
-        'pipeline cmd 2 failed correctly';
+    eval { $h->get_reply(); };
+    ok ( $@, 'pipeline cmd 2 failed correctly' );
 };
 
 done_testing();
