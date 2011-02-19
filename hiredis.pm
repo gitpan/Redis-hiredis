@@ -1,9 +1,25 @@
 package Redis::hiredis;
 
 use strict;
-our $VERSION = "0.9.2.3";
+our $VERSION = "0.9.2.4";
 require XSLoader;
 XSLoader::load('Redis::hiredis', $VERSION);
+
+sub new {
+    my($class, %args) = @_;
+
+    if(!exists $args{utf8}) {
+        $args{utf8} = 1;
+    }
+
+    my $self = $class->_new($args{utf8});
+
+    if(exists $args{host}) {
+        $self->connect($args{host}, defined $args{port} ? $args{port} : 6379);
+    }
+
+    return $self;
+}
 
 1;
 __END__
@@ -18,6 +34,7 @@ Redis::hiredis - interact with Redis using the hiredis client.
   my $redis = Redis::hiredis->new();
   $redis->connect('127.0.0.1', 6379);
   $redis->command('set foo bar');
+  $redis->command(["set", "foo", "bar baz"]); # values with spaces
   my $val = $redis->command('get foo');
 
   # to pipeline commands
@@ -29,8 +46,8 @@ Redis::hiredis - interact with Redis using the hiredis client.
 =head1 DESCRIPTION
 
 C<Redis::hiredis> is a simple wrapper around Salvatore Sanfilippo's
-hiredis C client that allows connecting and sending any command
-just like you would from a command line Redis client.
+L<hiredis|https://github.com/antirez/hiredis> C client that allows connecting 
+and sending any command just like you would from a command line Redis client.
 
 B<NOTE> Versions >= 0.9.2 are not compatible with prior versions
 
@@ -38,9 +55,12 @@ B<NOTE> Versions >= 0.9.2 are not compatible with prior versions
 
 =over 4
 
-=item new()
+=item new([utf8 => 1], [host => "localhost"], [port => 6379])
 
 Creates a new Redis::hiredis object.
+
+If the host attribute is provided the L</connect> method will automatically be
+called.
 
 =item connect( $hostname, $port )
 
@@ -50,10 +70,12 @@ C<$port> is the port to connect on.  Default 6379
 
 =item command( $command )
 
-C<$command> is a string identical to what you would pass using 
-the official redis cli
+C<$command> can be a string or array ref of the command and parameters you want
+to pass to Redis.  ex:
 
-  'set foo bar'
+  'set foo bar' or ["set", "foo", "bar baz"]
+
+Note that if you have spaces in your values, you must use the array ref form.
 
 command will return a scalar value which will either be an integer, string
 or an array ref (if multiple values are returned).
@@ -79,12 +101,12 @@ See append_command().
 =head1 SEE ALSO
 
 The Redis command reference can be found here:
-F<http://redis.io/commands>
+L<http://redis.io/commands>
 
 A discusion of pipelining can be found here:
-F<http://redis.io/topics/pipelining>
+L<http://redis.io/topics/pipelining>
 
 Documentation on the hiredis client can be found here:
-F<http://github.com/antirez/hiredis>
+L<http://github.com/antirez/hiredis>
 
 =cut

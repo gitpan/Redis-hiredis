@@ -12,37 +12,36 @@
 
 typedef struct redhi_obj {
     redisContext *context;
+    bool utf8;
 } redhi_obj;
 
 typedef redhi_obj *Redis__hiredis;
 
-SV * _readReply (redisReply *reply);
-SV * _readMultiBulkReply (redisReply *reply);
-SV * _readBulkReply (redisReply *reply);
+SV * _read_reply (Redis__hiredis self, redisReply *reply);
+SV * _read_multi_bulk_reply (Redis__hiredis self, redisReply *reply);
+SV * _read_bulk_reply (Redis__hiredis self, redisReply *reply);
 
-SV * _readReply (redisReply *reply) {
+SV * _read_reply (Redis__hiredis self, redisReply *reply) {
     if (reply->type == REDIS_REPLY_ARRAY) {
-        return _readMultiBulkReply(reply);
+        return _read_multi_bulk_reply(self, reply);
     }
     else {
-        return _readBulkReply(reply);
+        return _read_bulk_reply(self, reply);
     }
 }
 
-SV * _readMultiBulkReply (redisReply *reply) {
-    SV *sv;
-    AV *arr_reply;
+SV * _read_multi_bulk_reply (Redis__hiredis self, redisReply *reply) {
+    AV *arr_reply = newAV();
+    SV *sv = newRV_noinc((SV*)arr_reply);
     int i;
-    arr_reply = newAV();
     for ( i=0; i < reply->elements; i++) {
-        av_push(arr_reply, _readBulkReply(reply->element[i]));
+        av_push(arr_reply, _read_bulk_reply(self, reply->element[i]));
     }
-    sv = newRV_inc((SV*)arr_reply);
 
     return sv;
 }
 
-SV * _readBulkReply (redisReply *reply) {
+SV * _read_bulk_reply (Redis__hiredis self, redisReply *reply) {
     SV *sv;
 
     if ( reply->type == REDIS_REPLY_ERROR ) {
@@ -51,6 +50,9 @@ SV * _readBulkReply (redisReply *reply) {
     else if ( reply->type == REDIS_REPLY_STRING 
            || reply->type == REDIS_REPLY_STATUS ) {
         sv = newSVpvn(reply->str,reply->len);
+        if (self->utf8) {
+            sv_utf8_decode(sv);
+        }
     }
     else if ( reply->type == REDIS_REPLY_INTEGER ) {
         sv = newSViv(reply->integer);
@@ -72,7 +74,7 @@ void assertConnected (redhi_obj *self) {
 MODULE = Redis::hiredis PACKAGE = Redis::hiredis PREFIX = redis_hiredis_
 
 void
-redis_hiredis_connect(self, hostname, port=6379)
+redis_hiredis_connect(self, hostname, port = 6379)
     Redis::hiredis self
     char *hostname
     int port
@@ -85,13 +87,37 @@ redis_hiredis_connect(self, hostname, port=6379)
 SV *
 redis_hiredis_command(self, cmd)
     Redis::hiredis self
-    char *cmd
+    SV *cmd
     PREINIT:
+        int i;
+        AV *array;
+        char **argv;
+        size_t *argv_sizes;
         redisReply *reply;
     CODE:
         assertConnected(self);
-        reply  = redisCommand(self->context, cmd);
-        RETVAL = _readReply(reply);
+        if ( SvROK(cmd) && SvTYPE(array = (AV*)SvRV(cmd))==SVt_PVAV ) {
+            argv = (char**)malloc((av_len(array) + 1) * sizeof(char *));
+            argv_sizes = (size_t*)malloc((av_len(array) + 1) * sizeof(size_t *));
+            for ( i = 0; i < av_len(array)+1; i++ ) {
+                STRLEN len;
+                SV **curr = av_fetch(array,i,0);
+                if ( self->utf8 ) {
+                    argv[i] = SvPVutf8(*curr, len);
+                }
+                else {
+                    argv[i] = SvPV(*curr, len);
+                }
+                argv_sizes[i] = len;
+            }
+            reply  = redisCommandArgv(self->context, av_len(array) + 1, (const char **)argv, argv_sizes);
+            free(argv);
+            free(argv_sizes);
+        }
+        else {
+            reply  = redisCommand(self->context, SvPV_nolen(cmd));
+        }
+        RETVAL = _read_reply(self, reply);
         freeReplyObject(reply);
     OUTPUT:
         RETVAL
@@ -112,16 +138,21 @@ redis_hiredis_get_reply(self)
     CODE:
         assertConnected(self);
         redisGetReply(self->context, (void **) &reply);
-        RETVAL = _readReply(reply);
+        RETVAL = _read_reply(self, reply);
         freeReplyObject(reply);
     OUTPUT:
         RETVAL
 
 Redis::hiredis
-redis_hiredis_new(clazz)
+redis_hiredis__new(clazz, utf8)
     char *clazz
+    bool utf8
+    PREINIT:
+        Redis__hiredis self;
     CODE:
-        RETVAL = calloc(1, sizeof(struct redhi_obj));
+        self = calloc(1, sizeof(struct redhi_obj));
+        self->utf8 = utf8;
+        RETVAL = self;
     OUTPUT:
         RETVAL
 
