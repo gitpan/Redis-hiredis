@@ -65,7 +65,28 @@ SV * _read_bulk_reply (Redis__hiredis self, redisReply *reply) {
     return sv;
 }
 
-void assertConnected (redhi_obj *self) {
+int _command_from_arr_ref (Redis__hiredis self, SV *cmd, char ***argv, size_t **argv_sizes) {
+    AV *array;
+    STRLEN len;
+    int i;
+    if ( SvTYPE(array = (AV*)SvRV(cmd))==SVt_PVAV ) {
+        *argv = (char**)malloc((av_len(array) + 1) * sizeof(char *));
+        *argv_sizes = (size_t*)malloc((av_len(array) + 1) * sizeof(size_t *));
+        for ( i = 0; i < av_len(array)+1; i++ ) {
+            SV **curr = av_fetch(array,i,0);
+            if ( self->utf8 ) {
+                (argv[0][i]) = SvPVutf8(*curr, len);
+            }
+            else {
+                (argv[0][i]) = SvPV(*curr, len);
+            }
+            argv_sizes[0][i] = len;
+        }
+    }
+    return i;
+}
+
+void assert_connected (redhi_obj *self) {
     if (self->context == NULL) {
         croak("%s","Not connected.");
     }
@@ -85,37 +106,44 @@ redis_hiredis_connect(self, hostname, port = 6379)
         }
 
 SV *
-redis_hiredis_command(self, cmd)
+redis_hiredis_command(self, ...)
     Redis::hiredis self
-    SV *cmd
     PREINIT:
-        int i;
-        AV *array;
+        int params;
         char **argv;
         size_t *argv_sizes;
         redisReply *reply;
     CODE:
-        assertConnected(self);
-        if ( SvROK(cmd) && SvTYPE(array = (AV*)SvRV(cmd))==SVt_PVAV ) {
-            argv = (char**)malloc((av_len(array) + 1) * sizeof(char *));
-            argv_sizes = (size_t*)malloc((av_len(array) + 1) * sizeof(size_t *));
-            for ( i = 0; i < av_len(array)+1; i++ ) {
+        assert_connected(self);
+        if ( items > 2 || SvROK(ST(1)) ) {
+            if ( items > 2 ) {
+                // because I am not sure how to pass the argument stack to another function,
+                // lets just do our work here.
+                params = items - 1;
+                int i;
                 STRLEN len;
-                SV **curr = av_fetch(array,i,0);
-                if ( self->utf8 ) {
-                    argv[i] = SvPVutf8(*curr, len);
+                argv = malloc(params * sizeof(char *));
+                argv_sizes = malloc(params * sizeof(size_t *));
+
+                for ( i = 0; i < params; i++ ) {
+                    if ( self->utf8 ) {
+                        argv[i] = SvPVutf8(ST(i+1), len);
+                    }
+                    else {
+                        argv[i] = SvPV(ST(i+1), len);
+                    }
+                    argv_sizes[i] = len;
                 }
-                else {
-                    argv[i] = SvPV(*curr, len);
-                }
-                argv_sizes[i] = len;
             }
-            reply  = redisCommandArgv(self->context, av_len(array) + 1, (const char **)argv, argv_sizes);
+            else {
+                params = _command_from_arr_ref(self, ST(1), &argv, &argv_sizes);
+            }
+            reply  = redisCommandArgv(self->context, params, (const char**)argv, argv_sizes);
             free(argv);
             free(argv_sizes);
         }
         else {
-            reply  = redisCommand(self->context, SvPV_nolen(cmd));
+            reply  = redisCommand(self->context, (char *)SvPV_nolen(ST(1)));
         }
         RETVAL = _read_reply(self, reply);
         freeReplyObject(reply);
@@ -127,7 +155,7 @@ redis_hiredis_append_command(self, cmd)
     Redis::hiredis self
     char *cmd
     CODE:
-        assertConnected(self);
+        assert_connected(self);
         redisAppendCommand(self->context, cmd);
 
 SV *
@@ -136,7 +164,7 @@ redis_hiredis_get_reply(self)
     PREINIT:
         redisReply *reply;
     CODE:
-        assertConnected(self);
+        assert_connected(self);
         redisGetReply(self->context, (void **) &reply);
         RETVAL = _read_reply(self, reply);
         freeReplyObject(reply);

@@ -1,9 +1,11 @@
 package Redis::hiredis;
 
 use strict;
-our $VERSION = "0.9.2.4";
+our $VERSION = "0.9.2.5";
 require XSLoader;
 XSLoader::load('Redis::hiredis', $VERSION);
+
+our $AUTOLOAD;
 
 sub new {
     my($class, %args) = @_;
@@ -19,6 +21,12 @@ sub new {
     }
 
     return $self;
+}
+
+sub AUTOLOAD {
+    my $self = shift;
+    (my $method = $AUTOLOAD) =~ s/.*:://;
+    $self->command($method, @_);
 }
 
 1;
@@ -49,7 +57,7 @@ C<Redis::hiredis> is a simple wrapper around Salvatore Sanfilippo's
 L<hiredis|https://github.com/antirez/hiredis> C client that allows connecting 
 and sending any command just like you would from a command line Redis client.
 
-B<NOTE> Versions >= 0.9.2 are not compatible with prior versions
+B<NOTE> Versions >= 0.9.2 and <= 0.9.2.4 are not compatible with prior versions
 
 =head2 METHODS
 
@@ -68,14 +76,20 @@ C<$hostname> is the hostname of the Redis server to connect to
 
 C<$port> is the port to connect on.  Default 6379
 
-=item command( $command )
+=item command( $command_and_args )
 
-C<$command> can be a string or array ref of the command and parameters you want
-to pass to Redis.  ex:
+=item command( [ $command, $arg, ... ] )
 
-  'set foo bar' or ["set", "foo", "bar baz"]
+=item command( $command, $arg, ... )
 
-Note that if you have spaces in your values, you must use the array ref form.
+command supports multiple types of calls to be backwards compatible and provide
+more convenient use.  Examples of how to pass arguments are:
+
+  $redis->command('set foo bar');
+  $redis->command(["set", "foo", "bar baz"]);
+  $redis->command("set", "foo", "bar baz");
+
+Note that if you have spaces in your values, you must use one of the last 2 forms.
 
 command will return a scalar value which will either be an integer, string
 or an array ref (if multiple values are returned).
@@ -97,6 +111,14 @@ See the hiredis documentation for a more detailed explanation.
 See append_command().
 
 =back
+
+=head2 Autoloaded Methods
+
+Autoload is used to allow an interface like $redis->set("foo", "bar").  The method
+name you provide will be passed blindly to Redis, so any supported command should work.
+
+Note that to use any autoloaded method, you must pass arguments as an array, the string
+and array ref forms supported by command will not work.
 
 =head1 SEE ALSO
 
