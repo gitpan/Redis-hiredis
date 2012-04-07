@@ -6,9 +6,9 @@
 #include <string.h>
 #include <stdio.h>
 
-#include "lib-hiredis.h"
-#include "lib-net.h"
-#include "lib-sds.h"
+#include "hiredis.h"
+#include "net.h"
+#include "sds.h"
 
 typedef struct redhi_obj {
     redisContext *context;
@@ -26,6 +26,8 @@ SV * _read_reply (Redis__hiredis self, redisReply *reply) {
         return _read_multi_bulk_reply(self, reply);
     }
     else {
+        if ( reply->type == REDIS_REPLY_ERROR ) 
+          croak("%s",reply->str);
         return _read_bulk_reply(self, reply);
     }
 }
@@ -44,11 +46,9 @@ SV * _read_multi_bulk_reply (Redis__hiredis self, redisReply *reply) {
 SV * _read_bulk_reply (Redis__hiredis self, redisReply *reply) {
     SV *sv;
 
-    if ( reply->type == REDIS_REPLY_ERROR ) {
-        croak("%s",reply->str);
-    }
-    else if ( reply->type == REDIS_REPLY_STRING 
-           || reply->type == REDIS_REPLY_STATUS ) {
+    if ( reply->type == REDIS_REPLY_STRING 
+            || reply->type == REDIS_REPLY_STATUS 
+            || reply->type == REDIS_REPLY_ERROR ) {
         sv = newSVpvn(reply->str,reply->len);
         if (self->utf8) {
             sv_utf8_decode(sv);
@@ -105,6 +105,16 @@ redis_hiredis_connect(self, hostname, port = 6379)
             croak("%s",self->context->errstr);
         }
 
+void
+redis_hiredis_connect_unix(self, path)
+    Redis::hiredis self
+    char *path
+    CODE:
+        self->context = redisConnectUnix(path);
+        if ( self->context->err ) {
+            croak("%s",self->context->errstr);
+        }
+
 SV *
 redis_hiredis_command(self, ...)
     Redis::hiredis self
@@ -145,6 +155,10 @@ redis_hiredis_command(self, ...)
         else {
             reply  = redisCommand(self->context, (char *)SvPV_nolen(ST(1)));
         }
+
+        if(reply == NULL)
+            croak("error processing command: %s\n", self->context->errstr);
+
         RETVAL = _read_reply(self, reply);
         freeReplyObject(reply);
     OUTPUT:
