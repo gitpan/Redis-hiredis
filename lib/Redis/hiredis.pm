@@ -1,7 +1,7 @@
 package Redis::hiredis;
 
 use strict;
-our $VERSION = "0.10.2";
+our $VERSION = "0.11.0";
 require XSLoader;
 XSLoader::load('Redis::hiredis', $VERSION);
 
@@ -27,9 +27,14 @@ sub new {
 }
 
 sub AUTOLOAD {
-    my $self = shift;
     (my $method = $AUTOLOAD) =~ s/.*:://;
-    $self->command($method, @_);
+
+    # cache method for future calls
+    my $sub =  sub { shift->command($method, @_) };
+    no strict 'refs';
+    *$AUTOLOAD = $sub;
+
+    goto $sub;
 }
 
 1;
